@@ -5,6 +5,7 @@ Static GitHub Pages front end for the Small Dam Decision Support System.
 ## Contents
 - Dashboard page
 - Data Entry page
+- Daily Report tab with date-based report table and CSV download
 - Salient Features tab for public small-dam reference data
 - 16-dam dropdown loaded from bundled dam data and `data/dams.csv`
 - Observer/session/reading fields
@@ -16,9 +17,9 @@ Static GitHub Pages front end for the Small Dam Decision Support System.
 
 ## Project structure
 - `index.html` - GitHub Pages entry point
-- `css/styles.css` - responsive dashboard, form, filter, and features-table styling
+- `css/styles.css` - responsive dashboard, form, report, filter, and features-table styling
 - `js/config.js` - central backend Web App URL used by all browsers
-- `js/app.js` - navigation, bundled/CSV loading, backend sync, local backup, features table, PDF export, filters, and status summaries
+- `js/app.js` - navigation, bundled/CSV loading, backend sync, local backup, daily report, features table, PDF export, filters, and status summaries
 - `data/dams.js` - bundled dam feature CSV for reliable public loading
 - `data/dams.csv` - 16-dam reference dataset
 - `google-apps-script/Code.gs` - Google Sheets backend script
@@ -50,6 +51,20 @@ The dashboard reads from the central record backend without exposing a public li
 - Count of dams below DSL
 
 The status summary uses the latest submitted reading per dam within the selected period.
+
+## Daily report
+The Daily Report tab asks for a report date, finds the latest submitted reading for each dam on that date, and combines it with static dam levels. The report includes:
+- Dam
+- District
+- DSL
+- NPL
+- HFL
+- Current water level
+- Spillway gauge
+- Spillway discharge
+- Status
+
+The **Download CSV** button exports the displayed daily report as `sd-dss-daily-report-YYYY-MM-DD.csv`.
 
 ## Salient features
 The Salient Features tab reads the static public dam feature columns and excludes `CWL` because current water level is an operational reading, not a static feature. The **Download PDF** button opens a print-ready A3 landscape report that can be saved as PDF from the browser print dialog.
