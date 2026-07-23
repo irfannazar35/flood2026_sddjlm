@@ -1,65 +1,111 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Small Dams Decision Support System</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b4f6c" />
+  <title>SD-DSS | Small Dam Decision Support System</title>
+  <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
-  <div class="app-shell">
-    <header class="topbar">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">PID</div>
       <div>
-        <div class="eyebrow">Small Dams Division Jhelum</div>
-        <h1>Small Dams Decision Support System</h1>
-        <p class="subtle">GitHub Pages + Google Sheets live dashboard</p>
+        <h1>Small Dam Decision Support System</h1>
+        <p>Punjab Irrigation Department • Phase 1</p>
       </div>
-      <div class="status-card">
-        <div class="status-label">Last Updated</div>
-        <div id="lastUpdated" class="status-value">Loading…</div>
+    </div>
+    <nav class="nav">
+      <button class="nav-btn active" data-page="dashboard">Dashboard</button>
+      <button class="nav-btn" data-page="entry">Data Entry</button>
+    </nav>
+  </header>
+
+  <main class="shell">
+    <section id="dashboardPage" class="page active">
+      <div class="hero card">
+        <div>
+          <h2>Operational Overview</h2>
+          <p>Daily monitoring for the 16 small dams with structured field readings and reporting readiness.</p>
+        </div>
+        <div class="hero-stats">
+          <div><span id="damCount">16</span><small>Dams Loaded</small></div>
+          <div><span id="entryCount">0</span><small>Saved Entries</small></div>
+          <div><span id="lastSync">—</span><small>Last Sync</small></div>
+        </div>
       </div>
-    </header>
 
-    <main class="content-grid">
-      <section class="cards" id="summaryCards">
-        <article class="card"><div class="card-label">Total Dams</div><div class="card-value" id="totalDams">16</div></article>
-        <article class="card"><div class="card-label">Operational</div><div class="card-value" id="operationalDams">16</div></article>
-        <article class="card"><div class="card-label">Spilling</div><div class="card-value" id="spillingDams">0</div></article>
-        <article class="card"><div class="card-label">Avg. Rainfall</div><div class="card-value" id="avgRainfall">0</div></article>
-      </section>
+      <div class="grid-3">
+        <article class="card kpi"><h3>Reading Sessions</h3><p>Morning / Evening operational logbook style capture.</p></article>
+        <article class="card kpi"><h3>Observer Control</h3><p>XEN, SEN Concerned, SDO Concerned, and Field Staff.</p></article>
+        <article class="card kpi"><h3>Google Sheets Ready</h3><p>Prepared for API or Apps Script submission layer.</p></article>
+      </div>
 
-      <section class="panel map-panel">
-        <div class="panel-header">
-          <h2>Interactive Map</h2>
-          <div class="controls">
-            <button class="chip active" data-view="0930">9:00 AM</button>
-            <button class="chip" data-view="1830">6:00 PM</button>
-          </div>
-        </div>
-        <div id="map"></div>
-      </section>
-
-      <aside class="panel side-panel">
-        <div class="panel-header"><h2>Dam Details</h2></div>
-        <div id="selectedDam" class="detail-empty">Select a dam marker.</div>
-        <div class="search-box">
-          <input id="searchInput" type="search" placeholder="Search dam…" />
-        </div>
+      <div class="card table-card">
+        <div class="card-head"><h3>Recent Entries</h3><span id="statusMsg">Local demo storage active</span></div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Dam</th><th>Level</th><th>Status</th></tr></thead>
-            <tbody id="damTableBody"></tbody>
+            <thead>
+              <tr>
+                <th>Date</th><th>Dam</th><th>Observer</th><th>Session</th><th>Water Level</th><th>Spillway Gauge</th><th>Discharge</th><th>Rainfall</th>
+              </tr>
+            </thead>
+            <tbody id="recentRows"></tbody>
           </table>
         </div>
-      </aside>
-    </main>
-  </div>
+      </div>
+    </section>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js"></script>
+    <section id="entryPage" class="page">
+      <div class="card form-card">
+        <div class="card-head"><h3>Field Data Entry</h3><span>Use this form for daily reporting</span></div>
+        <form id="entryForm" class="form-grid">
+          <label>Dam
+            <select id="damSelect" required></select>
+          </label>
+          <label>Observer
+            <select id="observerSelect" required>
+              <option>XEN</option>
+              <option>SEN Concerned</option>
+              <option>SDO Concerned</option>
+              <option>Field Staff</option>
+            </select>
+          </label>
+          <label>Reading Session
+            <select id="sessionSelect" required>
+              <option>Morning</option>
+              <option>Evening</option>
+              <option>Emergency</option>
+            </select>
+          </label>
+          <label>Reading Date
+            <input id="readingDate" type="date" required />
+          </label>
+          <label>Water Level (ft)
+            <input id="waterLevel" type="number" step="0.01" placeholder="0.00" required />
+          </label>
+          <label>Spillway Gauge (ft)
+            <input id="spillGauge" type="number" step="0.01" placeholder="0.00" required />
+          </label>
+          <label>Spillway Discharge (cusecs)
+            <input id="spillDischarge" type="number" step="0.01" placeholder="0.00" required />
+          </label>
+          <label>Rainfall (mm)
+            <input id="rainfall" type="number" step="0.01" placeholder="0.00" required />
+          </label>
+          <label class="full">Remarks
+            <textarea id="remarks" rows="4" placeholder="Operational remarks, anomalies, spill status, weather, gate condition..."></textarea>
+          </label>
+          <div class="full actions">
+            <button type="submit" class="primary">Save Entry</button>
+            <button type="button" id="exportBtn" class="secondary">Export JSON</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/app.js"></script>
 </body>
 </html>
