@@ -30,6 +30,7 @@ const featureColumns = [
 const state = {
   dams: [],
   entries: loadEntries(),
+  reportRows: [],
   activeRange: 'today',
   sheetsUrl: normalizeScriptUrl(appConfig.sheetsWebAppUrl),
   requireBackend: appConfig.requireBackend !== false
@@ -51,6 +52,11 @@ const elements = {
   aboveNplCount: document.getElementById('aboveNplCount'),
   normalRangeCount: document.getElementById('normalRangeCount'),
   belowDslCount: document.getElementById('belowDslCount'),
+  reportDate: document.getElementById('reportDate'),
+  reportSummary: document.getElementById('reportSummary'),
+  reportRows: document.getElementById('reportRows'),
+  loadReportBtn: document.getElementById('loadReportBtn'),
+  downloadReportCsvBtn: document.getElementById('downloadReportCsvBtn'),
   featureRows: document.getElementById('featureRows'),
   featureCount: document.getElementById('featureCount'),
   downloadFeaturesPdfBtn: document.getElementById('downloadFeaturesPdfBtn'),
@@ -63,6 +69,7 @@ async function init() {
   wireNavigation();
   wireRangeFilters();
   wireFeatureExport();
+  wireDailyReport();
   setDefaultDate();
   wireForm();
   updateDashboardSource();
@@ -73,6 +80,7 @@ async function init() {
     state.dams = await fetchDams();
     populateDamSelect(state.dams);
     renderFeatures();
+    renderDailyReport();
     elements.damCount.textContent = state.dams.length;
     elements.featureCount.textContent = state.dams.length;
     setStatus(`Loaded ${state.dams.length} dams from dataset`);
@@ -84,6 +92,7 @@ async function init() {
 
   await setupBackend();
   await refreshSheetEntries();
+  renderDailyReport();
 }
 
 function wireNavigation() {
@@ -108,6 +117,13 @@ function wireRangeFilters() {
 
 function wireFeatureExport() {
   elements.downloadFeaturesPdfBtn.addEventListener('click', downloadFeaturesPdf);
+}
+
+function wireDailyReport() {
+  elements.reportDate.valueAsDate = new Date();
+  elements.loadReportBtn.addEventListener('click', renderDailyReport);
+  elements.reportDate.addEventListener('change', renderDailyReport);
+  elements.downloadReportCsvBtn.addEventListener('click', downloadReportCsv);
 }
 
 function setDefaultDate() {
@@ -137,6 +153,7 @@ function wireForm() {
         state.entries.unshift(entry);
         saveEntries(state.entries);
         renderEntries();
+        renderDailyReport();
         setStatus('Entry saved locally because backend is disabled in config.');
       }
 
@@ -147,6 +164,7 @@ function wireForm() {
       state.entries.unshift(entry);
       saveEntries(state.entries);
       renderEntries();
+      renderDailyReport();
       setStatus('Backend submit failed. Entry saved locally as backup.');
     } finally {
       submitButton.disabled = false;
@@ -298,6 +316,7 @@ async function refreshSheetEntries() {
   if (!state.sheetsUrl) {
     updateDashboardSource();
     renderEntries();
+    renderDailyReport();
     return;
   }
 
@@ -308,11 +327,13 @@ async function refreshSheetEntries() {
     saveEntries(state.entries);
     updateDashboardSource(result.spreadsheetUrl);
     renderEntries();
+    renderDailyReport();
     setStatus('Dashboard loaded from central records.');
   } catch (error) {
     console.error(error);
     updateDashboardSource();
     renderEntries();
+    renderDailyReport();
     setStatus('Using local backup. Backend read is not connected yet.');
   }
 }
@@ -371,6 +392,91 @@ function renderEntries() {
       </tr>
     `;
   }).join('');
+}
+
+function renderDailyReport() {
+  const reportDate = elements.reportDate.value;
+  if (!reportDate || !state.dams.length) {
+    state.reportRows = [];
+    elements.reportRows.innerHTML = '<tr><td colspan="9">Select a date and fetch report data.</td></tr>';
+    elements.reportSummary.textContent = 'Select a date to prepare the daily report';
+    return;
+  }
+
+  state.reportRows = buildDailyReportRows(reportDate);
+  const withReadings = state.reportRows.filter((row) => row.currentWaterLevel !== '').length;
+  elements.reportSummary.textContent = `${withReadings} of ${state.dams.length} dams have readings for ${reportDate}`;
+
+  elements.reportRows.innerHTML = state.reportRows.map((row) => `
+    <tr>
+      <td>${escapeHtml(row.dam)}</td>
+      <td>${escapeHtml(row.district)}</td>
+      <td>${formatNumber(row.dsl)}</td>
+      <td>${formatNumber(row.npl)}</td>
+      <td>${formatNumber(row.hfl)}</td>
+      <td>${formatNumber(row.currentWaterLevel)}</td>
+      <td>${formatNumber(row.spillwayGauge)}</td>
+      <td>${formatNumber(row.spillwayDischarge)}</td>
+      <td>${escapeHtml(row.status)}</td>
+    </tr>
+  `).join('');
+}
+
+function buildDailyReportRows(reportDate) {
+  const dayEntries = state.entries.filter((entry) => String(entry.readingDate || '').slice(0, 10) === reportDate);
+  const latest = new Map();
+  dayEntries.forEach((entry) => {
+    const damName = normalizeName(entry.dam);
+    const current = latest.get(damName);
+    if (!current || entrySortTime(entry) > entrySortTime(current)) latest.set(damName, entry);
+  });
+
+  return state.dams.map((dam) => {
+    const entry = latest.get(normalizeName(dam.name));
+    const status = entry ? classifyEntryLevel(entry, dam).label : 'No reading';
+    return {
+      dam: dam.name,
+      district: dam.district,
+      dsl: dam.dsl,
+      npl: dam.npl,
+      hfl: dam.hfl,
+      currentWaterLevel: entry ? entry.waterLevelFt : '',
+      spillwayGauge: entry ? entry.spillwayGaugeFt : '',
+      spillwayDischarge: entry ? entry.spillwayDischargeCusecs : '',
+      status
+    };
+  });
+}
+
+function downloadReportCsv() {
+  if (!state.reportRows.length) renderDailyReport();
+  if (!state.reportRows.length) {
+    setStatus('Select a date before downloading the daily report.');
+    return;
+  }
+
+  const reportDate = elements.reportDate.value || new Date().toISOString().slice(0, 10);
+  const headers = ['Dam', 'District', 'DSL', 'NPL', 'HFL', 'Current Water Level', 'Spillway Gauge', 'Spillway Discharge', 'Status'];
+  const lines = [headers, ...state.reportRows.map((row) => [
+    row.dam,
+    row.district,
+    row.dsl,
+    row.npl,
+    row.hfl,
+    row.currentWaterLevel,
+    row.spillwayGauge,
+    row.spillwayDischarge,
+    row.status
+  ])];
+  const csv = lines.map((line) => line.map(csvCell).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `sd-dss-daily-report-${reportDate}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+  setStatus('Daily report CSV prepared.');
 }
 
 function summarizeWaterLevels(entries) {
@@ -508,6 +614,10 @@ function exportEntries() {
   link.click();
   URL.revokeObjectURL(url);
   setStatus('JSON export prepared.');
+}
+
+function csvCell(value) {
+  return `"${String(value ?? '').replace(/"/g, '""')}"`;
 }
 
 function normalizeScriptUrl(value) {
