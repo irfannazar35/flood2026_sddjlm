@@ -19,6 +19,7 @@
     <nav class="nav">
       <button class="nav-btn active" data-page="dashboard">Dashboard</button>
       <button class="nav-btn" data-page="entry">Data Entry</button>
+      <button class="nav-btn" data-page="features">Salient Features</button>
     </nav>
   </header>
 
@@ -114,6 +115,29 @@
             <button type="button" id="exportBtn" class="secondary">Export JSON</button>
           </div>
         </form>
+      </div>
+    </section>
+
+    <section id="featuresPage" class="page">
+      <div class="toolbar card">
+        <div>
+          <h3>Salient Features of Small Dams</h3>
+          <span><span id="featureCount">0</span> dams loaded from public dataset</span>
+        </div>
+        <button type="button" id="downloadFeaturesPdfBtn" class="primary">Download PDF</button>
+      </div>
+
+      <div class="card table-card feature-card">
+        <div class="table-wrap">
+          <table class="feature-table">
+            <thead>
+              <tr>
+                <th>Sr.</th><th>Name of Dam</th><th>District</th><th>Tehsil</th><th>Location</th><th>Type</th><th>Status</th><th>Height (ft)</th><th>Cost (M)</th><th>Gross Storage (Aft)</th><th>Live Storage (Aft)</th><th>CCA (Acres)</th><th>Channel (Cfs)</th><th>Canal Length (ft)</th><th>DSL</th><th>NPL</th><th>HFL</th><th>CWL</th><th>River / Nullah</th><th>Year</th><th>Catchment (Sq. Km)</th><th>Latitude</th><th>Longitude</th>
+              </tr>
+            </thead>
+            <tbody id="featureRows"></tbody>
+          </table>
+        </div>
       </div>
     </section>
   </main>
