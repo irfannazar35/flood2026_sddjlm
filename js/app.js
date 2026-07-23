@@ -2,6 +2,32 @@ const STORAGE_KEY = 'sdDssEntries';
 const CSV_PATH = 'data/dams.csv';
 
 const appConfig = window.SD_DSS_CONFIG || {};
+const featureColumns = [
+  ['Sr. No.', 'Sr.'],
+  ['Name of Dam', 'Name of Dam'],
+  ['District', 'District'],
+  ['Tehsil', 'Tehsil'],
+  ['Location', 'Location'],
+  ['Type of Dam', 'Type'],
+  ['Operational / Non-Operational', 'Status'],
+  ['Height\n(ft)', 'Height (ft)'],
+  ['Completion Cost\n(million)', 'Cost (M)'],
+  ['Gross Storage Capacity\n(Aft)', 'Gross Storage (Aft)'],
+  ['Live storage\n(Aft)', 'Live Storage (Aft)'],
+  ['C.C.A.\n(Acres)', 'CCA (Acres)'],
+  ['Capacity of Channel\n(Cfs)', 'Channel (Cfs)'],
+  ['Length of Canal\n(ft)', 'Canal Length (ft)'],
+  ['DSL\n(ft)', 'DSL'],
+  ['NPL\n(ft)', 'NPL'],
+  ['HFL\n(ft)', 'HFL'],
+  ['CWL\n(ft)', 'CWL'],
+  ['River / Nullah', 'River / Nullah'],
+  ['Year of Completion', 'Year'],
+  ['Catchment Area\n(Sq. Km)', 'Catchment (Sq. Km)'],
+  ['Decimal Latitude', 'Latitude'],
+  ['Decimal Longitude', 'Longitude']
+];
+
 const state = {
   dams: [],
   entries: loadEntries(),
@@ -26,6 +52,9 @@ const elements = {
   avgWaterLevel: document.getElementById('avgWaterLevel'),
   avgDischarge: document.getElementById('avgDischarge'),
   avgRainfall: document.getElementById('avgRainfall'),
+  featureRows: document.getElementById('featureRows'),
+  featureCount: document.getElementById('featureCount'),
+  downloadFeaturesPdfBtn: document.getElementById('downloadFeaturesPdfBtn'),
   exportBtn: document.getElementById('exportBtn')
 };
 
@@ -34,6 +63,7 @@ init();
 async function init() {
   wireNavigation();
   wireRangeFilters();
+  wireFeatureExport();
   setDefaultDate();
   wireForm();
   updateDashboardSource();
@@ -42,7 +72,9 @@ async function init() {
   try {
     state.dams = await fetchDams();
     populateDamSelect(state.dams);
+    renderFeatures();
     elements.damCount.textContent = state.dams.length;
+    elements.featureCount.textContent = state.dams.length;
     setStatus(`Loaded ${state.dams.length} dams from CSV`);
   } catch (error) {
     console.error(error);
@@ -71,6 +103,10 @@ function wireRangeFilters() {
       renderEntries();
     });
   });
+}
+
+function wireFeatureExport() {
+  elements.downloadFeaturesPdfBtn.addEventListener('click', downloadFeaturesPdf);
 }
 
 function setDefaultDate() {
@@ -130,6 +166,7 @@ async function fetchDams() {
   return parseCsv(csvText)
     .filter((row) => row['Name of Dam'])
     .map((row) => ({
+      ...row,
       id: row['Sr. No.'],
       name: row['Name of Dam'].trim(),
       district: row.District,
@@ -188,6 +225,19 @@ function populateDamSelect(dams) {
     option.textContent = `${dam.name} - ${dam.district}`;
     elements.damSelect.append(option);
   });
+}
+
+function renderFeatures() {
+  if (!state.dams.length) {
+    elements.featureRows.innerHTML = '<tr><td colspan="23">No dam features loaded.</td></tr>';
+    return;
+  }
+
+  elements.featureRows.innerHTML = state.dams.map((dam) => `
+    <tr>
+      ${featureColumns.map(([key]) => `<td>${escapeHtml(dam[key] || '-')}</td>`).join('')}
+    </tr>
+  `).join('');
 }
 
 function getFormEntry() {
@@ -324,6 +374,49 @@ function average(entries, key) {
   const values = entries.map((entry) => Number(entry[key])).filter((value) => Number.isFinite(value));
   if (!values.length) return '-';
   return formatNumber(values.reduce((sum, value) => sum + value, 0) / values.length);
+}
+
+function downloadFeaturesPdf() {
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    setStatus('Allow pop-ups to generate the salient features PDF.');
+    return;
+  }
+
+  const title = 'Salient Features of Small Dams';
+  const generatedAt = new Intl.DateTimeFormat('en-PK', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date());
+  const headerCells = featureColumns.map(([, label]) => `<th>${escapeHtml(label)}</th>`).join('');
+  const bodyRows = state.dams.map((dam) => `
+    <tr>${featureColumns.map(([key]) => `<td>${escapeHtml(dam[key] || '-')}</td>`).join('')}</tr>
+  `).join('');
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>${title}</title>
+      <style>
+        @page { size: A3 landscape; margin: 10mm; }
+        body { font-family: Arial, Helvetica, sans-serif; color: #18323f; }
+        h1 { margin: 0 0 4px; font-size: 20px; }
+        p { margin: 0 0 12px; color: #60707b; font-size: 11px; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th, td { border: 1px solid #b8c8d0; padding: 4px; text-align: left; vertical-align: top; font-size: 7px; line-height: 1.2; word-break: break-word; }
+        th { background: #e8eff3; color: #0b4f6c; }
+      </style>
+    </head>
+    <body>
+      <h1>${title}</h1>
+      <p>Punjab Irrigation Department - Generated ${generatedAt}</p>
+      <table>
+        <thead><tr>${headerCells}</tr></thead>
+        <tbody>${bodyRows}</tbody>
+      </table>
+      <script>window.onload = () => { window.print(); };</script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
 }
 
 function exportEntries() {
