@@ -19,6 +19,7 @@
     <nav class="nav">
       <button class="nav-btn active" data-page="dashboard">Dashboard</button>
       <button class="nav-btn" data-page="entry">Data Entry</button>
+      <button class="nav-btn" data-page="report">Daily Report</button>
       <button class="nav-btn" data-page="features">Salient Features</button>
     </nav>
   </header>
@@ -115,6 +116,37 @@
             <button type="button" id="exportBtn" class="secondary">Export JSON</button>
           </div>
         </form>
+      </div>
+    </section>
+
+    <section id="reportPage" class="page">
+      <div class="toolbar card">
+        <div>
+          <h3>Daily Report</h3>
+          <span id="reportSummary">Select a date to prepare the daily report</span>
+        </div>
+        <div class="actions report-actions">
+          <label class="inline-field">Report Date
+            <input id="reportDate" type="date" />
+          </label>
+          <button type="button" id="loadReportBtn" class="primary">Fetch Data</button>
+          <button type="button" id="downloadReportCsvBtn" class="secondary">Download CSV</button>
+        </div>
+      </div>
+
+      <div class="card table-card">
+        <div class="table-wrap">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Dam</th><th>District</th><th>DSL</th><th>NPL</th><th>HFL</th><th>Current Water Level</th><th>Spillway Gauge</th><th>Spillway Discharge</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="reportRows">
+              <tr><td colspan="9">Select a date and fetch report data.</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
 
