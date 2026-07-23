@@ -48,9 +48,9 @@ const elements = {
   recentRows: document.getElementById('recentRows'),
   statusMsg: document.getElementById('statusMsg'),
   dashboardSource: document.getElementById('dashboardSource'),
-  avgWaterLevel: document.getElementById('avgWaterLevel'),
-  avgDischarge: document.getElementById('avgDischarge'),
-  avgRainfall: document.getElementById('avgRainfall'),
+  aboveNplCount: document.getElementById('aboveNplCount'),
+  normalRangeCount: document.getElementById('normalRangeCount'),
+  belowDslCount: document.getElementById('belowDslCount'),
   featureRows: document.getElementById('featureRows'),
   featureCount: document.getElementById('featureCount'),
   downloadFeaturesPdfBtn: document.getElementById('downloadFeaturesPdfBtn'),
@@ -131,7 +131,7 @@ function wireForm() {
     try {
       if (state.sheetsUrl) {
         await saveEntryToSheet(entry);
-        setStatus('Entry submitted to the central Google Sheet. Refreshing dashboard...');
+        setStatus('Entry submitted to the central record backend. Refreshing dashboard...');
         await refreshSheetEntries();
       } else {
         state.entries.unshift(entry);
@@ -177,8 +177,9 @@ async function fetchDams() {
       district: row.District,
       tehsil: row.Tehsil,
       status: row['Operational / Non-Operational'],
-      npl: row['NPL (ft)'],
-      hfl: row['HFL (ft)'],
+      dsl: parseNumber(row['DSL (ft)']),
+      npl: parseNumber(row['NPL (ft)']),
+      hfl: parseNumber(row['HFL (ft)']),
       latitude: row['Decimal Latitude'],
       longitude: row['Decimal Longitude']
     }));
@@ -302,12 +303,12 @@ async function refreshSheetEntries() {
 
   try {
     const result = await requestJsonp('list');
-    if (!result.ok) throw new Error(result.error || 'Unable to read sheet');
+    if (!result.ok) throw new Error(result.error || 'Unable to read records');
     state.entries = result.entries || [];
     saveEntries(state.entries);
     updateDashboardSource(result.spreadsheetUrl);
     renderEntries();
-    setStatus('Dashboard loaded from the central Google Sheet.');
+    setStatus('Dashboard loaded from central records.');
   } catch (error) {
     console.error(error);
     updateDashboardSource();
@@ -340,31 +341,93 @@ function requestJsonp(action) {
 
 function renderEntries() {
   const filteredEntries = filterEntries(state.entries, state.activeRange);
-  const sevenDayEntries = filterEntries(state.entries, '7days');
+  const statusSummary = summarizeWaterLevels(filteredEntries);
 
   elements.entryCount.textContent = filteredEntries.length;
   elements.lastSync.textContent = state.entries[0] ? formatDateTime(state.entries[0].createdAt) : '-';
-  elements.avgWaterLevel.textContent = average(sevenDayEntries, 'waterLevelFt');
-  elements.avgDischarge.textContent = average(sevenDayEntries, 'spillwayDischargeCusecs');
-  elements.avgRainfall.textContent = average(sevenDayEntries, 'rainfallMm');
+  elements.aboveNplCount.textContent = statusSummary.aboveNpl;
+  elements.normalRangeCount.textContent = statusSummary.normalRange;
+  elements.belowDslCount.textContent = statusSummary.belowDsl;
 
   if (!filteredEntries.length) {
-    elements.recentRows.innerHTML = '<tr><td colspan="8">No readings found for this period.</td></tr>';
+    elements.recentRows.innerHTML = '<tr><td colspan="9">No readings found for this period.</td></tr>';
     return;
   }
 
-  elements.recentRows.innerHTML = filteredEntries.slice(0, 50).map((entry) => `
-    <tr>
-      <td>${escapeHtml(entry.readingDate)}</td>
-      <td>${escapeHtml(entry.dam)}</td>
-      <td>${escapeHtml(entry.observer)}</td>
-      <td>${escapeHtml(entry.session)}</td>
-      <td>${formatNumber(entry.waterLevelFt)}</td>
-      <td>${formatNumber(entry.spillwayGaugeFt)}</td>
-      <td>${formatNumber(entry.spillwayDischargeCusecs)}</td>
-      <td>${formatNumber(entry.rainfallMm)}</td>
-    </tr>
-  `).join('');
+  elements.recentRows.innerHTML = filteredEntries.slice(0, 50).map((entry) => {
+    const dam = findDamForEntry(entry);
+    const status = classifyEntryLevel(entry, dam);
+    return `
+      <tr>
+        <td>${escapeHtml(entry.readingDate)}</td>
+        <td>${escapeHtml(entry.dam)}</td>
+        <td>${escapeHtml(entry.observer)}</td>
+        <td>${escapeHtml(entry.session)}</td>
+        <td>${formatNumber(entry.waterLevelFt)}</td>
+        <td>${formatNumber(dam && dam.dsl)}</td>
+        <td>${formatNumber(dam && dam.npl)}</td>
+        <td>${formatNumber(entry.spillwayDischargeCusecs)}</td>
+        <td>${escapeHtml(status.label)}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function summarizeWaterLevels(entries) {
+  const latestEntries = latestEntryPerDam(entries);
+  return latestEntries.reduce((summary, entry) => {
+    const status = classifyEntryLevel(entry, findDamForEntry(entry));
+    if (status.key === 'aboveNpl') summary.aboveNpl += 1;
+    if (status.key === 'normalRange') summary.normalRange += 1;
+    if (status.key === 'belowDsl') summary.belowDsl += 1;
+    return summary;
+  }, { aboveNpl: 0, normalRange: 0, belowDsl: 0 });
+}
+
+function latestEntryPerDam(entries) {
+  const latest = new Map();
+  entries.forEach((entry) => {
+    const damName = normalizeName(entry.dam);
+    if (!damName) return;
+    const current = latest.get(damName);
+    if (!current || entrySortTime(entry) > entrySortTime(current)) {
+      latest.set(damName, entry);
+    }
+  });
+  return Array.from(latest.values());
+}
+
+function classifyEntryLevel(entry, dam) {
+  const waterLevel = parseNumber(entry.waterLevelFt);
+  const discharge = parseNumber(entry.spillwayDischargeCusecs);
+  const dsl = dam ? parseNumber(dam.dsl) : NaN;
+  const npl = dam ? parseNumber(dam.npl) : NaN;
+
+  if (!Number.isFinite(waterLevel) || !Number.isFinite(dsl) || !Number.isFinite(npl)) {
+    return { key: 'unknown', label: 'Reference missing' };
+  }
+
+  if (waterLevel >= npl || discharge > 0) {
+    return { key: 'aboveNpl', label: 'Above NPL / Spillway Active' };
+  }
+
+  if (waterLevel >= dsl && waterLevel < npl) {
+    return { key: 'normalRange', label: 'Between DSL and NPL' };
+  }
+
+  return { key: 'belowDsl', label: 'Below DSL' };
+}
+
+function findDamForEntry(entry) {
+  const damName = normalizeName(entry.dam);
+  return state.dams.find((dam) => normalizeName(dam.name) === damName);
+}
+
+function entrySortTime(entry) {
+  const created = new Date(entry.createdAt).getTime();
+  if (Number.isFinite(created)) return created;
+  const reading = new Date(`${String(entry.readingDate || '').slice(0, 10)}T00:00:00`).getTime();
+  return Number.isFinite(reading) ? reading : 0;
 }
 
 function filterEntries(entries, range) {
@@ -381,12 +444,6 @@ function filterEntries(entries, range) {
     if (range === 'today') return day.getTime() === today.getTime();
     return day >= minimumDate && day <= today;
   });
-}
-
-function average(entries, key) {
-  const values = entries.map((entry) => Number(entry[key])).filter((value) => Number.isFinite(value));
-  if (!values.length) return '-';
-  return formatNumber(values.reduce((sum, value) => sum + value, 0) / values.length);
 }
 
 function downloadFeaturesPdf() {
@@ -457,11 +514,9 @@ function normalizeScriptUrl(value) {
   return String(value || '').trim();
 }
 
-function updateDashboardSource(sheetUrl) {
-  if (sheetUrl) {
-    elements.dashboardSource.innerHTML = `Source: <a href="${sheetUrl}" target="_blank" rel="noopener">Central Google Sheet</a>`;
-  } else if (state.sheetsUrl) {
-    elements.dashboardSource.textContent = 'Source: central backend configured';
+function updateDashboardSource() {
+  if (state.sheetsUrl) {
+    elements.dashboardSource.textContent = 'Source: central records backend connected';
   } else {
     elements.dashboardSource.textContent = 'Source: backend URL missing in js/config.js';
   }
@@ -489,6 +544,15 @@ function parseReadingDate(value) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+function parseNumber(value) {
+  const number = Number(String(value ?? '').replace(/,/g, '').trim());
+  return Number.isFinite(number) ? number : NaN;
+}
+
+function normalizeName(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
 function startOfDay(date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
@@ -503,7 +567,7 @@ function formatDateTime(value) {
 }
 
 function formatNumber(value) {
-  const number = Number(value);
+  const number = parseNumber(value);
   if (!Number.isFinite(number)) return '-';
   return new Intl.NumberFormat('en-PK', { maximumFractionDigits: 2 }).format(number);
 }
