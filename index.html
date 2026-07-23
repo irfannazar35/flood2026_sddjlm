@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Small Dams Decision Support System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">Small Dams Division Jhelum</div>
+        <h1>Small Dams Decision Support System</h1>
+        <p class="subtle">GitHub Pages + Google Sheets live dashboard</p>
+      </div>
+      <div class="status-card">
+        <div class="status-label">Last Updated</div>
+        <div id="lastUpdated" class="status-value">Loading…</div>
+      </div>
+    </header>
+
+    <main class="content-grid">
+      <section class="cards" id="summaryCards">
+        <article class="card"><div class="card-label">Total Dams</div><div class="card-value" id="totalDams">16</div></article>
+        <article class="card"><div class="card-label">Operational</div><div class="card-value" id="operationalDams">16</div></article>
+        <article class="card"><div class="card-label">Spilling</div><div class="card-value" id="spillingDams">0</div></article>
+        <article class="card"><div class="card-label">Avg. Rainfall</div><div class="card-value" id="avgRainfall">0</div></article>
+      </section>
+
+      <section class="panel map-panel">
+        <div class="panel-header">
+          <h2>Interactive Map</h2>
+          <div class="controls">
+            <button class="chip active" data-view="0930">9:00 AM</button>
+            <button class="chip" data-view="1830">6:00 PM</button>
+          </div>
+        </div>
+        <div id="map"></div>
+      </section>
+
+      <aside class="panel side-panel">
+        <div class="panel-header"><h2>Dam Details</h2></div>
+        <div id="selectedDam" class="detail-empty">Select a dam marker.</div>
+        <div class="search-box">
+          <input id="searchInput" type="search" placeholder="Search dam…" />
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Dam</th><th>Level</th><th>Status</th></tr></thead>
+            <tbody id="damTableBody"></tbody>
+          </table>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
