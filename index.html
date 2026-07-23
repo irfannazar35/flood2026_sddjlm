@@ -27,20 +27,20 @@
     <section id="dashboardPage" class="page active">
       <div class="hero card">
         <div>
-          <h2>Operational Overview</h2>
-          <p>Daily monitoring for the 16 small dams with long-term backend record keeping.</p>
+          <h2>Current Dam Status</h2>
+          <p>Latest submitted water levels compared with each dam's DSL and NPL reference levels.</p>
         </div>
         <div class="hero-stats">
           <div><span id="damCount">16</span><small>Dams Loaded</small></div>
-          <div><span id="entryCount">0</span><small>Filtered Entries</small></div>
-          <div><span id="lastSync">-</span><small>Last Sync</small></div>
+          <div><span id="entryCount">0</span><small>Readings in Period</small></div>
+          <div><span id="lastSync">-</span><small>Last Reading</small></div>
         </div>
       </div>
 
       <div class="toolbar card">
         <div>
           <h3>Reading Period</h3>
-          <span id="dashboardSource">Backend connection pending</span>
+          <span id="dashboardSource">Central records connection pending</span>
         </div>
         <div class="segmented" aria-label="Dashboard period filter">
           <button class="range-btn active" data-range="today" type="button">Today</button>
@@ -50,9 +50,9 @@
       </div>
 
       <div class="grid-3">
-        <article class="card kpi"><h3>7-Day Avg Water Level</h3><p><strong id="avgWaterLevel">-</strong> ft</p></article>
-        <article class="card kpi"><h3>7-Day Avg Discharge</h3><p><strong id="avgDischarge">-</strong> cusecs</p></article>
-        <article class="card kpi"><h3>7-Day Avg Rainfall</h3><p><strong id="avgRainfall">-</strong> mm</p></article>
+        <article class="card kpi"><h3>Above NPL / Spillway Active</h3><p><strong id="aboveNplCount">0</strong> dams</p></article>
+        <article class="card kpi"><h3>Between DSL and NPL</h3><p><strong id="normalRangeCount">0</strong> dams</p></article>
+        <article class="card kpi"><h3>Below DSL</h3><p><strong id="belowDslCount">0</strong> dams</p></article>
       </div>
 
       <div class="card table-card">
@@ -61,7 +61,7 @@
           <table>
             <thead>
               <tr>
-                <th>Date</th><th>Dam</th><th>Observer</th><th>Session</th><th>Water Level</th><th>Spillway Gauge</th><th>Discharge</th><th>Rainfall</th>
+                <th>Date</th><th>Dam</th><th>Observer</th><th>Session</th><th>Water Level</th><th>DSL</th><th>NPL</th><th>Discharge</th><th>Status</th>
               </tr>
             </thead>
             <tbody id="recentRows"></tbody>
