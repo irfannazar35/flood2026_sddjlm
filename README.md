@@ -35,7 +35,10 @@ This app therefore uses a backend endpoint:
 
 `Save Entry` -> Google Apps Script Web App -> Google Sheet row
 
-The backend URL is configured once in `js/config.js`. It is not entered by each user and is not stored per browser.
+The backend URL is configured once in `js/config.js`. It is not entered by each user and is not stored per browser. The public dashboard does not display a link to the Google Sheet, and the Apps Script response does not return the spreadsheet URL.
+
+## Backend updates
+When `google-apps-script/Code.gs` changes, paste the updated code into the Google Apps Script editor and create a new deployment version. GitHub commits do not automatically update an existing Apps Script deployment.
 
 ## Dashboard records
 The dashboard reads from the central record backend without exposing a public link to the Sheet. It supports:
