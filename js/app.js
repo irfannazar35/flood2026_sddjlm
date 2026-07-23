@@ -10,20 +10,19 @@ const featureColumns = [
   ['Location', 'Location'],
   ['Type of Dam', 'Type'],
   ['Operational / Non-Operational', 'Status'],
-  ['Height\n(ft)', 'Height (ft)'],
-  ['Completion Cost\n(million)', 'Cost (M)'],
-  ['Gross Storage Capacity\n(Aft)', 'Gross Storage (Aft)'],
-  ['Live storage\n(Aft)', 'Live Storage (Aft)'],
-  ['C.C.A.\n(Acres)', 'CCA (Acres)'],
-  ['Capacity of Channel\n(Cfs)', 'Channel (Cfs)'],
-  ['Length of Canal\n(ft)', 'Canal Length (ft)'],
-  ['DSL\n(ft)', 'DSL'],
-  ['NPL\n(ft)', 'NPL'],
-  ['HFL\n(ft)', 'HFL'],
-  ['CWL\n(ft)', 'CWL'],
+  ['Height (ft)', 'Height (ft)'],
+  ['Completion Cost (million)', 'Cost (M)'],
+  ['Gross Storage Capacity (Aft)', 'Gross Storage (Aft)'],
+  ['Live storage (Aft)', 'Live Storage (Aft)'],
+  ['C.C.A. (Acres)', 'CCA (Acres)'],
+  ['Capacity of Channel (Cfs)', 'Channel (Cfs)'],
+  ['Length of Canal (ft)', 'Canal Length (ft)'],
+  ['DSL (ft)', 'DSL'],
+  ['NPL (ft)', 'NPL'],
+  ['HFL (ft)', 'HFL'],
   ['River / Nullah', 'River / Nullah'],
   ['Year of Completion', 'Year'],
-  ['Catchment Area\n(Sq. Km)', 'Catchment (Sq. Km)'],
+  ['Catchment Area (Sq. Km)', 'Catchment (Sq. Km)'],
   ['Decimal Latitude', 'Latitude'],
   ['Decimal Longitude', 'Longitude']
 ];
@@ -68,6 +67,7 @@ async function init() {
   wireForm();
   updateDashboardSource();
   renderEntries();
+  renderFeatureMessage('Loading dam features...');
 
   try {
     state.dams = await fetchDams();
@@ -78,6 +78,7 @@ async function init() {
     setStatus(`Loaded ${state.dams.length} dams from CSV`);
   } catch (error) {
     console.error(error);
+    renderFeatureMessage('Unable to load dam features. Refresh the page after GitHub Pages finishes updating.');
     setStatus('Unable to load data/dams.csv. Check GitHub Pages file paths.');
   }
 
@@ -172,8 +173,8 @@ async function fetchDams() {
       district: row.District,
       tehsil: row.Tehsil,
       status: row['Operational / Non-Operational'],
-      npl: row['NPL\n(ft)'],
-      hfl: row['HFL\n(ft)'],
+      npl: row['NPL (ft)'],
+      hfl: row['HFL (ft)'],
       latitude: row['Decimal Latitude'],
       longitude: row['Decimal Longitude']
     }));
@@ -213,8 +214,12 @@ function parseCsv(text) {
     rows.push(row);
   }
 
-  const headers = rows.shift().map((header) => header.trim());
+  const headers = rows.shift().map(normalizeHeader);
   return rows.map((cells) => Object.fromEntries(headers.map((header, index) => [header, cells[index] || ''])));
+}
+
+function normalizeHeader(header) {
+  return String(header).replace(/\s+/g, ' ').trim();
 }
 
 function populateDamSelect(dams) {
@@ -229,7 +234,7 @@ function populateDamSelect(dams) {
 
 function renderFeatures() {
   if (!state.dams.length) {
-    elements.featureRows.innerHTML = '<tr><td colspan="23">No dam features loaded.</td></tr>';
+    renderFeatureMessage('No dam features loaded.');
     return;
   }
 
@@ -238,6 +243,10 @@ function renderFeatures() {
       ${featureColumns.map(([key]) => `<td>${escapeHtml(dam[key] || '-')}</td>`).join('')}
     </tr>
   `).join('');
+}
+
+function renderFeatureMessage(message) {
+  elements.featureRows.innerHTML = `<tr><td colspan="${featureColumns.length}">${escapeHtml(message)}</td></tr>`;
 }
 
 function getFormEntry() {
@@ -377,6 +386,11 @@ function average(entries, key) {
 }
 
 function downloadFeaturesPdf() {
+  if (!state.dams.length) {
+    setStatus('Dam features are still loading. Try again in a moment.');
+    return;
+  }
+
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
     setStatus('Allow pop-ups to generate the salient features PDF.');
