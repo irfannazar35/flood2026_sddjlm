@@ -19,6 +19,7 @@
     <nav class="nav">
       <button class="nav-btn active" data-page="dashboard">Dashboard</button>
       <button class="nav-btn" data-page="entry">Data Entry</button>
+      <button class="nav-btn" data-page="settings">Settings</button>
     </nav>
   </header>
 
@@ -27,23 +28,35 @@
       <div class="hero card">
         <div>
           <h2>Operational Overview</h2>
-          <p>Daily monitoring for the 16 small dams with structured field readings and reporting readiness.</p>
+          <p>Daily monitoring for the 16 small dams with long-term Google Sheets record keeping.</p>
         </div>
         <div class="hero-stats">
           <div><span id="damCount">16</span><small>Dams Loaded</small></div>
-          <div><span id="entryCount">0</span><small>Saved Entries</small></div>
-          <div><span id="lastSync">—</span><small>Last Sync</small></div>
+          <div><span id="entryCount">0</span><small>Filtered Entries</small></div>
+          <div><span id="lastSync">-</span><small>Last Sync</small></div>
+        </div>
+      </div>
+
+      <div class="toolbar card">
+        <div>
+          <h3>Reading Period</h3>
+          <span id="dashboardSource">Waiting for Google Sheets setup</span>
+        </div>
+        <div class="segmented" aria-label="Dashboard period filter">
+          <button class="range-btn active" data-range="today" type="button">Today</button>
+          <button class="range-btn" data-range="7days" type="button">Past 7 Days</button>
+          <button class="range-btn" data-range="all" type="button">All</button>
         </div>
       </div>
 
       <div class="grid-3">
-        <article class="card kpi"><h3>Reading Sessions</h3><p>Morning / Evening operational logbook style capture.</p></article>
-        <article class="card kpi"><h3>Observer Control</h3><p>XEN, SEN Concerned, SDO Concerned, and Field Staff.</p></article>
-        <article class="card kpi"><h3>Google Sheets Ready</h3><p>Prepared for API or Apps Script submission layer.</p></article>
+        <article class="card kpi"><h3>7-Day Avg Water Level</h3><p><strong id="avgWaterLevel">-</strong> ft</p></article>
+        <article class="card kpi"><h3>7-Day Avg Discharge</h3><p><strong id="avgDischarge">-</strong> cusecs</p></article>
+        <article class="card kpi"><h3>7-Day Avg Rainfall</h3><p><strong id="avgRainfall">-</strong> mm</p></article>
       </div>
 
       <div class="card table-card">
-        <div class="card-head"><h3>Recent Entries</h3><span id="statusMsg">Local demo storage active</span></div>
+        <div class="card-head"><h3>Readings</h3><span id="statusMsg">Google Sheets sync ready</span></div>
         <div class="table-wrap">
           <table>
             <thead>
@@ -59,7 +72,7 @@
 
     <section id="entryPage" class="page">
       <div class="card form-card">
-        <div class="card-head"><h3>Field Data Entry</h3><span>Use this form for daily reporting</span></div>
+        <div class="card-head"><h3>Field Data Entry</h3><span>Saved to Google Sheets when configured</span></div>
         <form id="entryForm" class="form-grid">
           <label>Dam
             <select id="damSelect" required></select>
@@ -104,8 +117,25 @@
         </form>
       </div>
     </section>
+
+    <section id="settingsPage" class="page">
+      <div class="card form-card">
+        <div class="card-head"><h3>Google Sheets Setup</h3><span>One-time setup for long-term records</span></div>
+        <div class="form-grid">
+          <label class="full">Apps Script Web App URL
+            <input id="scriptUrlInput" type="url" placeholder="https://script.google.com/macros/s/.../exec" />
+          </label>
+          <div class="full actions">
+            <button type="button" id="saveScriptUrlBtn" class="primary">Save URL</button>
+            <button type="button" id="testSheetBtn" class="secondary">Create / Test Sheet</button>
+          </div>
+          <p class="full setup-note" id="sheetSetupResult">Deploy the script in google-apps-script/Code.gs, paste its Web App URL here, then test.</p>
+        </div>
+      </div>
+    </section>
   </main>
 
+  <script src="js/config.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
