@@ -19,7 +19,6 @@
     <nav class="nav">
       <button class="nav-btn active" data-page="dashboard">Dashboard</button>
       <button class="nav-btn" data-page="entry">Data Entry</button>
-      <button class="nav-btn" data-page="settings">Settings</button>
     </nav>
   </header>
 
@@ -28,7 +27,7 @@
       <div class="hero card">
         <div>
           <h2>Operational Overview</h2>
-          <p>Daily monitoring for the 16 small dams with long-term Google Sheets record keeping.</p>
+          <p>Daily monitoring for the 16 small dams with long-term backend record keeping.</p>
         </div>
         <div class="hero-stats">
           <div><span id="damCount">16</span><small>Dams Loaded</small></div>
@@ -40,7 +39,7 @@
       <div class="toolbar card">
         <div>
           <h3>Reading Period</h3>
-          <span id="dashboardSource">Waiting for Google Sheets setup</span>
+          <span id="dashboardSource">Backend connection pending</span>
         </div>
         <div class="segmented" aria-label="Dashboard period filter">
           <button class="range-btn active" data-range="today" type="button">Today</button>
@@ -56,7 +55,7 @@
       </div>
 
       <div class="card table-card">
-        <div class="card-head"><h3>Readings</h3><span id="statusMsg">Google Sheets sync ready</span></div>
+        <div class="card-head"><h3>Readings</h3><span id="statusMsg">Backend sync ready</span></div>
         <div class="table-wrap">
           <table>
             <thead>
@@ -72,7 +71,7 @@
 
     <section id="entryPage" class="page">
       <div class="card form-card">
-        <div class="card-head"><h3>Field Data Entry</h3><span>Saved to Google Sheets when configured</span></div>
+        <div class="card-head"><h3>Field Data Entry</h3><span>Submitted readings save to the configured backend</span></div>
         <form id="entryForm" class="form-grid">
           <label>Dam
             <select id="damSelect" required></select>
@@ -115,22 +114,6 @@
             <button type="button" id="exportBtn" class="secondary">Export JSON</button>
           </div>
         </form>
-      </div>
-    </section>
-
-    <section id="settingsPage" class="page">
-      <div class="card form-card">
-        <div class="card-head"><h3>Google Sheets Setup</h3><span>One-time setup for long-term records</span></div>
-        <div class="form-grid">
-          <label class="full">Apps Script Web App URL
-            <input id="scriptUrlInput" type="url" placeholder="https://script.google.com/macros/s/.../exec" />
-          </label>
-          <div class="full actions">
-            <button type="button" id="saveScriptUrlBtn" class="primary">Save URL</button>
-            <button type="button" id="testSheetBtn" class="secondary">Create / Test Sheet</button>
-          </div>
-          <p class="full setup-note" id="sheetSetupResult">Deploy the script in google-apps-script/Code.gs, paste its Web App URL here, then test.</p>
-        </div>
       </div>
     </section>
   </main>
