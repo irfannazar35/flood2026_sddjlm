@@ -52,7 +52,7 @@ function doPost(e) {
       body.id || Utilities.getUuid()
     ]);
 
-    return json_({ ok: true, spreadsheetUrl: getSpreadsheet_().getUrl() });
+    return json_({ ok: true });
   } catch (error) {
     return json_({ ok: false, error: String(error) });
   } finally {
@@ -66,20 +66,17 @@ function setupSheet_() {
   return {
     ok: true,
     spreadsheetId: spreadsheet.getId(),
-    spreadsheetUrl: spreadsheet.getUrl(),
     sheetName: SHEET_NAME
   };
 }
 
 function listReadings_() {
-  const spreadsheet = getSpreadsheet_();
   const sheet = getReadingsSheet_();
   const values = sheet.getDataRange().getValues();
   const rows = values.slice(1).filter((row) => row.some((cell) => cell !== ''));
 
   return {
     ok: true,
-    spreadsheetUrl: spreadsheet.getUrl(),
     entries: rows.map((row) => ({
       createdAt: toIso_(row[0]),
       readingDate: toDateOnly_(row[1]),
