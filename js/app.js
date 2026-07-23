@@ -75,11 +75,11 @@ async function init() {
     renderFeatures();
     elements.damCount.textContent = state.dams.length;
     elements.featureCount.textContent = state.dams.length;
-    setStatus(`Loaded ${state.dams.length} dams from CSV`);
+    setStatus(`Loaded ${state.dams.length} dams from dataset`);
   } catch (error) {
     console.error(error);
     renderFeatureMessage('Unable to load dam features. Refresh the page after GitHub Pages finishes updating.');
-    setStatus('Unable to load data/dams.csv. Check GitHub Pages file paths.');
+    setStatus('Unable to load dam feature data.');
   }
 
   await setupBackend();
@@ -158,12 +158,16 @@ function wireForm() {
 }
 
 async function fetchDams() {
-  const response = await fetch(CSV_PATH, { cache: 'no-store' });
-  if (!response.ok) {
-    throw new Error(`Failed to load ${CSV_PATH}: ${response.status}`);
+  let csvText = window.SD_DSS_DAMS_CSV;
+
+  if (!csvText) {
+    const response = await fetch(CSV_PATH, { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`Failed to load ${CSV_PATH}: ${response.status}`);
+    }
+    csvText = await response.text();
   }
 
-  const csvText = await response.text();
   return parseCsv(csvText)
     .filter((row) => row['Name of Dam'])
     .map((row) => ({
@@ -287,8 +291,7 @@ async function saveEntryToSheet(entry) {
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify(entry)
   });
-}
-
+}\n
 async function refreshSheetEntries() {
   if (!state.sheetsUrl) {
     updateDashboardSource();
