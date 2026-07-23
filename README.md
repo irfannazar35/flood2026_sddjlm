@@ -6,11 +6,11 @@ Static GitHub Pages front end for the Small Dam Decision Support System.
 - Dashboard page
 - Data Entry page
 - Salient Features tab for public small-dam reference data
-- 16-dam dropdown loaded from `data/dams.csv`
+- 16-dam dropdown loaded from bundled dam data and `data/dams.csv`
 - Observer/session/reading fields
 - Long-term Google Sheets storage through Apps Script backend
 - Dashboard filters for Today, Past 7 Days, and All readings
-- 7-day average water level, discharge, and rainfall KPIs
+- Operational water-level summary by DSL/NPL bands
 - Public PDF export for salient dam features
 - Local browser backup plus JSON export if backend submission fails
 
@@ -18,7 +18,8 @@ Static GitHub Pages front end for the Small Dam Decision Support System.
 - `index.html` - GitHub Pages entry point
 - `css/styles.css` - responsive dashboard, form, filter, and features-table styling
 - `js/config.js` - central backend Web App URL used by all browsers
-- `js/app.js` - navigation, CSV loading, backend sync, local backup, features table, PDF export, filters, averages, and JSON export
+- `js/app.js` - navigation, bundled/CSV loading, backend sync, local backup, features table, PDF export, filters, and status summaries
+- `data/dams.js` - bundled dam feature CSV for reliable public loading
 - `data/dams.csv` - 16-dam reference dataset
 - `google-apps-script/Code.gs` - Google Sheets backend script
 
@@ -36,28 +37,16 @@ This app therefore uses a backend endpoint:
 
 The backend URL is configured once in `js/config.js`. It is not entered by each user and is not stored per browser.
 
-## Google Sheets backend setup
-1. Open [Google Apps Script](https://script.google.com/).
-2. Create a new project.
-3. Paste the full contents of `google-apps-script/Code.gs` into the editor.
-4. Click **Deploy** > **New deployment**.
-5. Select **Web app**.
-6. Set **Execute as** to **Me**.
-7. Set **Who has access** to **Anyone**.
-8. Deploy and copy the Web App URL ending in `/exec`.
-9. Paste that URL into `js/config.js` as `sheetsWebAppUrl`.
-10. Commit the `js/config.js` change.
-
-After that, every browser and device using the GitHub Pages app writes to the same Google Sheet named `SD-DSS Daily Readings`.
-
 ## Dashboard records
-The dashboard reads from the central Google Sheet and supports:
+The dashboard reads from the central record backend without exposing a public link to the Sheet. It supports:
 - Today
 - Past 7 Days
 - All
-- 7-day average water level
-- 7-day average discharge
-- 7-day average rainfall
+- Count of dams above NPL or with spillway discharge
+- Count of dams between DSL and NPL
+- Count of dams below DSL
+
+The status summary uses the latest submitted reading per dam within the selected period.
 
 ## Salient features
-The Salient Features tab reads the static public dam feature columns from `data/dams.csv` and excludes `CWL` because current water level is an operational reading, not a static feature. The **Download PDF** button opens a print-ready A3 landscape report that can be saved as PDF from the browser print dialog.
+The Salient Features tab reads the static public dam feature columns and excludes `CWL` because current water level is an operational reading, not a static feature. The **Download PDF** button opens a print-ready A3 landscape report that can be saved as PDF from the browser print dialog.
