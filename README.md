@@ -60,4 +60,4 @@ The dashboard reads from the central Google Sheet and supports:
 - 7-day average rainfall
 
 ## Salient features
-The Salient Features tab reads all columns from `data/dams.csv` and presents the dam feature table for public use. The **Download PDF** button opens a print-ready A3 landscape report that can be saved as PDF from the browser print dialog.
+The Salient Features tab reads the static public dam feature columns from `data/dams.csv` and excludes `CWL` because current water level is an operational reading, not a static feature. The **Download PDF** button opens a print-ready A3 landscape report that can be saved as PDF from the browser print dialog.
