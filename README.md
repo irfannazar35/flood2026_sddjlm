@@ -5,18 +5,20 @@ Static GitHub Pages front end for the Small Dam Decision Support System.
 ## Contents
 - Dashboard page
 - Data Entry page
+- Salient Features tab for public small-dam reference data
 - 16-dam dropdown loaded from `data/dams.csv`
 - Observer/session/reading fields
 - Long-term Google Sheets storage through Apps Script backend
 - Dashboard filters for Today, Past 7 Days, and All readings
 - 7-day average water level, discharge, and rainfall KPIs
+- Public PDF export for salient dam features
 - Local browser backup plus JSON export if backend submission fails
 
 ## Project structure
 - `index.html` - GitHub Pages entry point
-- `css/styles.css` - responsive dashboard, form, and filter styling
+- `css/styles.css` - responsive dashboard, form, filter, and features-table styling
 - `js/config.js` - central backend Web App URL used by all browsers
-- `js/app.js` - navigation, CSV loading, backend sync, local backup, filters, averages, and JSON export
+- `js/app.js` - navigation, CSV loading, backend sync, local backup, features table, PDF export, filters, averages, and JSON export
 - `data/dams.csv` - 16-dam reference dataset
 - `google-apps-script/Code.gs` - Google Sheets backend script
 
@@ -56,3 +58,6 @@ The dashboard reads from the central Google Sheet and supports:
 - 7-day average water level
 - 7-day average discharge
 - 7-day average rainfall
+
+## Salient features
+The Salient Features tab reads all columns from `data/dams.csv` and presents the dam feature table for public use. The **Download PDF** button opens a print-ready A3 landscape report that can be saved as PDF from the browser print dialog.
