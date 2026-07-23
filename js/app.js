@@ -291,7 +291,8 @@ async function saveEntryToSheet(entry) {
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify(entry)
   });
-}\n
+}
+
 async function refreshSheetEntries() {
   if (!state.sheetsUrl) {
     updateDashboardSource();
