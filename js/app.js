@@ -1,12 +1,13 @@
 const STORAGE_KEY = 'sdDssEntries';
-const SCRIPT_URL_KEY = 'sdDssSheetsWebAppUrl';
 const CSV_PATH = 'data/dams.csv';
 
+const appConfig = window.SD_DSS_CONFIG || {};
 const state = {
   dams: [],
   entries: loadEntries(),
   activeRange: 'today',
-  sheetsUrl: getConfiguredSheetsUrl()
+  sheetsUrl: normalizeScriptUrl(appConfig.sheetsWebAppUrl),
+  requireBackend: appConfig.requireBackend !== false
 };
 
 const elements = {
@@ -25,11 +26,7 @@ const elements = {
   avgWaterLevel: document.getElementById('avgWaterLevel'),
   avgDischarge: document.getElementById('avgDischarge'),
   avgRainfall: document.getElementById('avgRainfall'),
-  exportBtn: document.getElementById('exportBtn'),
-  scriptUrlInput: document.getElementById('scriptUrlInput'),
-  saveScriptUrlBtn: document.getElementById('saveScriptUrlBtn'),
-  testSheetBtn: document.getElementById('testSheetBtn'),
-  sheetSetupResult: document.getElementById('sheetSetupResult')
+  exportBtn: document.getElementById('exportBtn')
 };
 
 init();
@@ -37,9 +34,9 @@ init();
 async function init() {
   wireNavigation();
   wireRangeFilters();
-  wireSettings();
   setDefaultDate();
   wireForm();
+  updateDashboardSource();
   renderEntries();
 
   try {
@@ -52,6 +49,7 @@ async function init() {
     setStatus('Unable to load data/dams.csv. Check GitHub Pages file paths.');
   }
 
+  await setupBackend();
   await refreshSheetEntries();
 }
 
@@ -75,39 +73,6 @@ function wireRangeFilters() {
   });
 }
 
-function wireSettings() {
-  elements.scriptUrlInput.value = state.sheetsUrl;
-  updateDashboardSource();
-
-  elements.saveScriptUrlBtn.addEventListener('click', async () => {
-    state.sheetsUrl = normalizeScriptUrl(elements.scriptUrlInput.value);
-    localStorage.setItem(SCRIPT_URL_KEY, state.sheetsUrl);
-    elements.scriptUrlInput.value = state.sheetsUrl;
-    updateDashboardSource();
-    setSetupResult('Apps Script URL saved in this browser.');
-    await refreshSheetEntries();
-  });
-
-  elements.testSheetBtn.addEventListener('click', async () => {
-    if (!state.sheetsUrl) {
-      setSetupResult('Paste your Apps Script Web App URL first.');
-      return;
-    }
-
-    setSetupResult('Checking Google Sheet connection...');
-    try {
-      const result = await requestJsonp('setup');
-      if (!result.ok) throw new Error(result.error || 'Setup failed');
-      setSetupResult(`Connected. Sheet: <a href="${result.spreadsheetUrl}" target="_blank" rel="noopener">Open SD-DSS Daily Readings</a>`);
-      updateDashboardSource(result.spreadsheetUrl);
-      await refreshSheetEntries();
-    } catch (error) {
-      console.error(error);
-      setSetupResult('Could not connect. Confirm the Apps Script is deployed as Web App with access set to Anyone.');
-    }
-  });
-}
-
 function setDefaultDate() {
   elements.readingDate.valueAsDate = new Date();
 }
@@ -118,19 +83,24 @@ function wireForm() {
     const submitButton = elements.entryForm.querySelector('button[type="submit"]');
     const entry = getFormEntry();
 
+    if (state.requireBackend && !state.sheetsUrl) {
+      setStatus('Backend is not configured yet. Add the Apps Script /exec URL in js/config.js.');
+      return;
+    }
+
     submitButton.disabled = true;
     submitButton.textContent = 'Saving...';
 
     try {
       if (state.sheetsUrl) {
         await saveEntryToSheet(entry);
-        setStatus('Entry submitted to Google Sheets. Refreshing dashboard...');
+        setStatus('Entry submitted to the central Google Sheet. Refreshing dashboard...');
         await refreshSheetEntries();
       } else {
         state.entries.unshift(entry);
         saveEntries(state.entries);
         renderEntries();
-        setStatus('Entry saved locally. Add Apps Script URL in Settings for long-term Google Sheets storage.');
+        setStatus('Entry saved locally because backend is disabled in config.');
       }
 
       elements.entryForm.reset();
@@ -140,7 +110,7 @@ function wireForm() {
       state.entries.unshift(entry);
       saveEntries(state.entries);
       renderEntries();
-      setStatus('Google Sheets submit failed. Entry saved locally as backup.');
+      setStatus('Backend submit failed. Entry saved locally as backup.');
     } finally {
       submitButton.disabled = false;
       submitButton.textContent = 'Save Entry';
@@ -238,6 +208,19 @@ function getFormEntry() {
   };
 }
 
+async function setupBackend() {
+  if (!state.sheetsUrl) return;
+
+  try {
+    const result = await requestJsonp('setup');
+    if (!result.ok) throw new Error(result.error || 'Setup failed');
+    updateDashboardSource(result.spreadsheetUrl);
+  } catch (error) {
+    console.error(error);
+    setStatus('Backend setup check failed. Existing local backup is shown until the backend responds.');
+  }
+}
+
 async function saveEntryToSheet(entry) {
   await fetch(state.sheetsUrl, {
     method: 'POST',
@@ -261,12 +244,12 @@ async function refreshSheetEntries() {
     saveEntries(state.entries);
     updateDashboardSource(result.spreadsheetUrl);
     renderEntries();
-    setStatus('Dashboard loaded from Google Sheets.');
+    setStatus('Dashboard loaded from the central Google Sheet.');
   } catch (error) {
     console.error(error);
     updateDashboardSource();
     renderEntries();
-    setStatus('Using local backup. Google Sheets read is not connected yet.');
+    setStatus('Using local backup. Backend read is not connected yet.');
   }
 }
 
@@ -278,7 +261,7 @@ function requestJsonp(action) {
     const timeout = window.setTimeout(() => cleanup(new Error('Request timed out')), 15000);
 
     window[callbackName] = (payload) => cleanup(null, payload);
-    script.onerror = () => cleanup(new Error('Google Sheets request failed'));
+    script.onerror = () => cleanup(new Error('Backend request failed'));
     script.src = `${state.sheetsUrl}${separator}action=${encodeURIComponent(action)}&callback=${callbackName}`;
     document.body.append(script);
 
@@ -346,7 +329,7 @@ function average(entries, key) {
 function exportEntries() {
   const payload = {
     exportedAt: new Date().toISOString(),
-    source: state.sheetsUrl ? 'SD-DSS Google Sheets export cache' : 'SD-DSS local export',
+    source: state.sheetsUrl ? 'SD-DSS backend export cache' : 'SD-DSS local backup export',
     entries: state.entries
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -359,26 +342,18 @@ function exportEntries() {
   setStatus('JSON export prepared.');
 }
 
-function getConfiguredSheetsUrl() {
-  return normalizeScriptUrl(localStorage.getItem(SCRIPT_URL_KEY) || (window.SD_DSS_CONFIG && window.SD_DSS_CONFIG.sheetsWebAppUrl) || '');
-}
-
 function normalizeScriptUrl(value) {
   return String(value || '').trim();
 }
 
 function updateDashboardSource(sheetUrl) {
   if (sheetUrl) {
-    elements.dashboardSource.innerHTML = `Source: <a href="${sheetUrl}" target="_blank" rel="noopener">Google Sheet</a>`;
+    elements.dashboardSource.innerHTML = `Source: <a href="${sheetUrl}" target="_blank" rel="noopener">Central Google Sheet</a>`;
   } else if (state.sheetsUrl) {
-    elements.dashboardSource.textContent = 'Source: Google Sheets Web App configured';
+    elements.dashboardSource.textContent = 'Source: central backend configured';
   } else {
-    elements.dashboardSource.textContent = 'Source: local backup until Google Sheets is configured';
+    elements.dashboardSource.textContent = 'Source: backend URL missing in js/config.js';
   }
-}
-
-function setSetupResult(message) {
-  elements.sheetSetupResult.innerHTML = message;
 }
 
 function loadEntries() {
